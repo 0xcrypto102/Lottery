@@ -21,11 +21,11 @@ pub fn start_lottery_handler(
     end_time: u64,
     rewards_breakdown: Vec<u64>,
     lottery_id: u64,
-    whitelist_addresses: Vec<Pubkey>,
+    _whitelist_addresses: Vec<Pubkey>,
     ant_coin_amount_per_ticket: u64,
 ) -> Result<()> {
     let lottery = &mut ctx.accounts.lottery;
-    lottery.add_to_whitelist(whitelist_addresses);
+    // lottery.add_to_whitelist(whitelist_addresses);
 
     // Set other lottery parameters
     lottery.id = lottery_id;
