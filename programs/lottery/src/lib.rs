@@ -2,6 +2,7 @@ mod errors;
 mod events;
 mod instructions;
 mod state;
+mod constants;
 
 use anchor_lang::prelude::*;
 pub use instructions::*;
@@ -12,12 +13,24 @@ declare_id!("66Tx1vJSxakHpk8xc7RRoFmh5U7qsQ8PvKMtQ8GSisL1");
 #[program]
 pub mod lottery {
     use super::*;
+
+    pub fn initialize(
+        ctx: Context<Initialize>,
+        rewards_breakdown: Vec<u64>,
+        bump: u8
+    ) -> Result<()> {
+        instructions::initialize(
+            ctx,
+            rewards_breakdown,
+            bump
+        )
+    }
+
     pub fn start_lottery(
         ctx: Context<StartLottery>,
         end_time: u64,
         rewards_breakdown: Vec<u64>,
         lottery_id: u64,
-        whitelist_addresses: Vec<Pubkey>,
         ant_coin_amount_per_ticket: u64,
     ) -> Result<()> {
         instructions::start_lottery_handler(
@@ -25,7 +38,6 @@ pub mod lottery {
             end_time,
             rewards_breakdown,
             lottery_id,
-            whitelist_addresses,
             ant_coin_amount_per_ticket,
         )
     }
@@ -44,4 +56,5 @@ pub mod lottery {
     ) -> Result<()> {
         instructions::process_draw_final_number_and_make_lottery_claimable_handler(ctx, lottery_id)
     }
+
 }

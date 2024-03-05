@@ -8,7 +8,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[derive(Accounts)]
 pub struct StartLottery<'info> {
     // #[account(init, payer = user, space = 8 + 8 + 8 * 6 + 4 + 32 + 16)] // Adjusted space
-    #[account(init, payer = owner, space = 1020)] // TODO Adjusted space
+    #[account(
+        init, 
+        payer = owner, 
+        space = 1020
+    )] // TODO Adjusted space
     pub lottery: Account<'info, Lottery>,
     // consider renaming the signer from user to owner because they start the lottery
     #[account(mut)]
@@ -21,16 +25,15 @@ pub fn start_lottery_handler(
     end_time: u64,
     rewards_breakdown: Vec<u64>,
     lottery_id: u64,
-    whitelist_addresses: Vec<Pubkey>,
     ant_coin_amount_per_ticket: u64,
 ) -> Result<()> {
     let lottery = &mut ctx.accounts.lottery;
-    lottery.add_to_whitelist(whitelist_addresses);
+    // lottery.add_to_whitelist(whitelist_addresses);
 
     // Set other lottery parameters
     lottery.id = lottery_id;
     lottery.end_time = end_time;
-    lottery.rewards_breakdown = rewards_breakdown;
+    // lottery.rewards_breakdown = rewards_breakdown;
     lottery.status = LotteryStatus::Open;
     lottery.owner = *ctx.accounts.owner.key;
     lottery.ant_coin_amount_per_ticket = ant_coin_amount_per_ticket;

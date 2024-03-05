@@ -54,10 +54,10 @@ pub fn buy_tickets_handler(ctx: Context<BuyTickets>, lottery_id: u64, quantity: 
         LotteryError::LotteryClosed
     );
     require_eq!(&lottery.id, &lottery_id, LotteryError::InvalidLotteryId);
-    require!(
-        &lottery.whitelist.contains(buyer),
-        LotteryError::NotWhitelisted
-    );
+    // require!(
+    //     &lottery.whitelist.contains(buyer),
+    //     LotteryError::NotWhitelisted
+    // );
 
     let amount_ant_for_transfer = lottery.ant_coin_amount_per_ticket * quantity;
     lottery.amount_collected_in_antcoin += amount_ant_for_transfer;

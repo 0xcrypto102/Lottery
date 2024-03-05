@@ -1,5 +1,12 @@
 use anchor_lang::prelude::{Pubkey, *};
 #[event]
+pub struct Initialized {
+    pub current_lottery_id: u64,
+    pub rewards_breakdown: Vec<u64>, 
+    pub owner: Pubkey, 
+}
+
+#[event]
 pub struct AdminTokenRecovery {
     pub token: Pubkey,
     pub amount: u64,
