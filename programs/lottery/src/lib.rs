@@ -29,15 +29,11 @@ pub mod lottery {
     pub fn start_lottery(
         ctx: Context<StartLottery>,
         end_time: u64,
-        rewards_breakdown: Vec<u64>,
-        lottery_id: u64,
         ant_coin_amount_per_ticket: u64,
     ) -> Result<()> {
         instructions::start_lottery_handler(
             ctx,
             end_time,
-            rewards_breakdown,
-            lottery_id,
             ant_coin_amount_per_ticket,
         )
     }
