@@ -1,12 +1,18 @@
 use anchor_lang::prelude::*;
 
-pub const LOTTERY_STATE_SEED: &[u8] = b"Lottery-state-seed";
+
+#[account]
+pub struct GlobalState {
+    pub current_lottery_id: u64,
+    pub rewards_breakdown: Vec<u64>, // Rewards distribution
+    pub owner: Pubkey,               // The authority who can close the lottery
+    pub bump: u8, // the bump for Lottery Account , I will use the PDA as Lottery
+}
 
 #[account]
 pub struct Lottery {
     pub id: u64,                     // Unique ID for the lottery
     pub end_time: u64,               // Timestamp when the lottery ends
-    pub rewards_breakdown: Vec<u64>, // Rewards distribution
     pub status: LotteryStatus,       // Status of the lottery
     pub owner: Pubkey,               // The authority who can close the lottery
     pub current_ticket_id: u64,      // Current ticket ID
