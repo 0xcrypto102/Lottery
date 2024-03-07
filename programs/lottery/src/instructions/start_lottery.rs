@@ -4,7 +4,10 @@ use crate::{constants::*, errors::*};
 
 use anchor_lang::prelude::{Pubkey, *};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+// use mpl_token_metadata::types::DataV2;
 use std::mem::size_of;
+
 
 // TODO give role to the pubkey that starts the lottery
 
@@ -20,7 +23,7 @@ pub struct StartLottery<'info> {
     // #[account(init, payer = user, space = 8 + 8 + 8 * 6 + 4 + 32 + 16)] // Adjusted space
     #[account(
         init, 
-        seeds = [LOTTERY_START_SEED, &(&global_state.current_lottery_id + 1).to_le_bytes()],
+        seeds = [LOTTERY_START_SEED, &(global_state.current_lottery_id + 1).to_le_bytes()],
         bump,
         space = 8 + size_of::<Lottery>(),
         payer = owner, 
@@ -35,7 +38,7 @@ pub struct StartLottery<'info> {
 pub fn start_lottery_handler(
     ctx: Context<StartLottery>,
     end_time: u64,
-    ant_coin_amount_per_ticket: u64,
+    lottery_coin_amount_per_ticket: u64,
 ) -> Result<()> {
     let accts = ctx.accounts;
 
@@ -47,7 +50,7 @@ pub fn start_lottery_handler(
     accts.lottery.end_time = end_time;
     accts.lottery.status = LotteryStatus::Open;
     accts.lottery.owner = accts.owner.key();
-    accts.lottery.ant_coin_amount_per_ticket = ant_coin_amount_per_ticket;
+    accts.lottery.lottery_coin_amount_per_ticket = lottery_coin_amount_per_ticket;
 
     emit!(LotteryOpen {
         lottery_id: accts.lottery.id ,

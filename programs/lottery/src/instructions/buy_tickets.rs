@@ -1,24 +1,81 @@
 use crate::errors::LotteryError;
 use crate::events::TicketsPurchase;
-use crate::state::{Lottery, LotteryStatus, Ticket};
+use crate::{constants::*};
+use crate::state::{Lottery, LotteryStatus, GlobalState, LotteryTicket};
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, Token, Mint,  TokenAccount, Transfer};
 use rand::Rng;
 use std::time::{SystemTime, UNIX_EPOCH};
+use orao_solana_vrf::program::OraoVrf;
+use orao_solana_vrf::state::NetworkState;
+use orao_solana_vrf::CONFIG_ACCOUNT_SEED;
+use orao_solana_vrf::RANDOMNESS_ACCOUNT_SEED;
+use orao_solana_vrf::state::Randomness;
+
+// use mpl_token_metadata::types::DataV2;
+use std::mem::size_of;
+use orao_solana_vrf::cpi::accounts::{ Request };
 
 #[derive(Accounts)]
 pub struct BuyTickets<'info> {
     #[account(mut)]
-    pub lottery: Account<'info, Lottery>,
-    // TODO change space
-    #[account(init, payer = buyer, space = 8 + 42)] // Adjust space for your Ticket struct
-    pub ticket: Account<'info, Ticket>,
-    #[account(mut)]
     pub buyer: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [LOTTERY_STATE_SEED],
+        bump = global_state.bump,
+    )]
+    pub global_state: Account<'info, GlobalState>,
+
+    #[account(
+        mut,
+        seeds = [LOTTERY_START_SEED, &global_state.current_lottery_id.to_le_bytes()],
+        bump
+    )]
+    pub lottery: Account<'info, Lottery>,
+
+    #[account(
+        init_if_needed,
+        payer = buyer,
+        seeds = [LOTTERY_TICKET_SEED, &global_state.current_lottery_id.to_le_bytes(), buyer.key().as_ref()],
+        bump,
+        space = 8 + size_of::<LotteryTicket>(),
+    )]
+    pub lottery_ticket: Account<'info, LotteryTicket>,
+
+    pub token_for_lottery: Account<'info, Mint>,
+
     #[account(mut)]
     pub buyer_token_account: Account<'info, TokenAccount>, // buyer token account with checks
-    #[account(mut)]
+    #[account(
+        mut,
+        token::mint = token_for_lottery,
+        token::authority = global_state,
+    )]
     pub admin_lottery_token_account: Account<'info, TokenAccount>, // Admin Account
+    // Oracle for generating random number
+    
+    /// CHECK:` doc comment explaining why no checks through types are necessary.
+    #[account(
+        mut,
+        seeds = [RANDOMNESS_ACCOUNT_SEED.as_ref(), &global_state.current_lottery_id.to_le_bytes(),&(lottery_ticket.total_ticket + 1).to_le_bytes(), buyer.key().as_ref() ],
+        bump,
+        seeds::program = orao_solana_vrf::ID
+    )]
+    pub random: AccountInfo<'info>,
+
+    /// CHECK:` doc comment explaining why no checks through types are necessary.
+    #[account(mut)]
+    pub treasury: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [CONFIG_ACCOUNT_SEED.as_ref()],
+        bump,
+        seeds::program = orao_solana_vrf::ID
+    )]
+    pub config: Box<Account<'info, NetworkState>>,
+    pub vrf: Program<'info, OraoVrf>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
 }
@@ -36,11 +93,10 @@ impl<'info> BuyTickets<'info> {
     }
 }
 
-pub fn buy_tickets_handler(ctx: Context<BuyTickets>, lottery_id: u64, quantity: u64) -> Result<()> {
+pub fn buy_tickets_handler(ctx: Context<BuyTickets>, lottery_id: u64) -> Result<()> {
     let lottery = &mut ctx.accounts.lottery;
     let buyer = ctx.accounts.buyer.key;
 
-    require!(quantity > 0, LotteryError::NotEnoughTickets);
     require!(
         lottery.end_time
             < SystemTime::now()
@@ -54,26 +110,11 @@ pub fn buy_tickets_handler(ctx: Context<BuyTickets>, lottery_id: u64, quantity: 
         LotteryError::LotteryClosed
     );
     require_eq!(&lottery.id, &lottery_id, LotteryError::InvalidLotteryId);
-    // require!(
-    //     &lottery.whitelist.contains(buyer),
-    //     LotteryError::NotWhitelisted
-    // );
+    
 
-    let amount_ant_for_transfer = lottery.ant_coin_amount_per_ticket * quantity;
-    lottery.amount_collected_in_antcoin += amount_ant_for_transfer;
-
-    let mut rng = rand::thread_rng();
-
-    let random_number = rng.gen_range(1000000..1999999);
-
-    for _ in 0..quantity {
-        let ticket = &mut ctx.accounts.ticket;
-        // ticket.number = lottery.current_ticket_id;
-        ticket.number = random_number;
-        ticket.owner = *ctx.accounts.buyer.key;
-
-        lottery.current_ticket_id += 1;
-    }
+    let amount_ant_for_transfer = lottery.lottery_coin_amount_per_ticket;
+    // lottery.amount_collected_in_lottery_coin += amount_ant_for_transfer;
+    lottery.amount_collected_in_lottery_coin += 1;
 
     token::transfer(ctx.accounts.transfer_context(), amount_ant_for_transfer)?;
 
@@ -82,7 +123,7 @@ pub fn buy_tickets_handler(ctx: Context<BuyTickets>, lottery_id: u64, quantity: 
         // NOTE: change this
         lottery_id: lottery_id,
         // NOTE: change this
-        number_tickets: quantity
+        // number_tickets: quantity
     });
 
     Ok(())
