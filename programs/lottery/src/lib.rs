@@ -17,7 +17,7 @@ pub mod lottery {
     pub fn initialize(
         ctx: Context<Initialize>,
         rewards_breakdown: Vec<u64>,
-        bump: u8
+        bump: u8,
     ) -> Result<()> {
         instructions::initialize(
             ctx,

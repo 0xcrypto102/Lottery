@@ -3,7 +3,7 @@ use crate::state::{ GlobalState };
 use crate::{constants::*};
 
 use anchor_spl::{
-    token::{Mint, Token, TokenAccount, transfer},
+    token::{Mint, Token, TokenAccount},
 };
 
 use anchor_lang::prelude::{Pubkey, *};
@@ -22,19 +22,24 @@ pub struct Initialize<'info> {
         space = 8 + size_of::<GlobalState>(),
         payer = owner, 
     )] // TODO Adjusted space
-    pub global_state: Account<'info, GlobalState>,
+    pub global_state: Box<Account<'info, GlobalState>>,
 
-    pub token_for_lottery: Account<'info, Mint>,
+    pub token_for_lottery: Box<Account<'info, Mint>>,
+
+    #[account(mut)]
+    pub lottery_token_account: Box<Account<'info, TokenAccount>>,// it should be owned by owner
+
+    pub token_for_antc: Box<Account<'info, Mint>>,
 
     #[account(
-        init,
+        init_if_needed,
         payer = owner,
-        seeds = [TOKEN_VAULT_SEED, token_for_lottery.key().as_ref()],
+        seeds = [TOKEN_VAULT_SEED, token_for_antc.key().as_ref()],
         bump,
-        token::mint = token_for_lottery,
+        token::mint = token_for_antc,
         token::authority = global_state,
     )]
-    lottery_token_account: Account<'info, TokenAccount>,
+    pub antc_token_account: Box<Account<'info, TokenAccount>>,
 
     // consider renaming the signer from user to owner because they start the lottery
     #[account(mut)]
@@ -54,6 +59,8 @@ pub fn initialize(
     global_state.rewards_breakdown = rewards_breakdown.clone();
     global_state.token_for_lottery = ctx.accounts.token_for_lottery.key();
     global_state.lottery_token_account = ctx.accounts.lottery_token_account.key();
+    global_state.token_for_antc = ctx.accounts.token_for_antc.key();
+    global_state.antc_token_account = ctx.accounts.antc_token_account.key();
     global_state.owner = ctx.accounts.owner.key();
     global_state.bump = bump;
 

@@ -7,6 +7,8 @@ pub struct GlobalState {
     pub rewards_breakdown: Vec<u64>, // Rewards distribution
     pub token_for_lottery: Pubkey, // the SPL token for lottery
     pub lottery_token_account: Pubkey, // Lottery token account for the reward pool
+    pub token_for_antc: Pubkey, // ANTC
+    pub antc_token_account: Pubkey, // ANTC PDA for the reward pool
     pub owner: Pubkey,               // The authority who can close the lottery
     pub bump: u8, // the bump for Lottery Account , I will use the PDA as Lottery
 }
@@ -20,6 +22,8 @@ pub struct Lottery {
     pub current_ticket_id: u64,      // Current ticket ID
     pub amount_collected_in_lottery_coin: u64, // amount collected
     pub lottery_coin_amount_per_ticket: u64,
+    pub deposited: bool,
+    pub amount_antc_for_deposit: u64,
 }
 
 #[account] 

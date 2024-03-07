@@ -48,14 +48,9 @@ pub struct BuyTickets<'info> {
     pub lottery_ticket: Account<'info, LotteryTicket>,
 
     pub token_for_lottery: Account<'info, Mint>,
-
     #[account(mut)]
-    pub buyer_token_account: Account<'info, TokenAccount>, // buyer token account with checks
-    #[account(
-        mut,
-        token::mint = token_for_lottery,
-        token::authority = global_state,
-    )]
+    pub buyer_token_account: Account<'info, TokenAccount>, 
+    #[account(mut)]
     pub admin_lottery_token_account: Account<'info, TokenAccount>, // Admin Account
     // Oracle for generating random number
     
@@ -114,7 +109,8 @@ pub fn buy_tickets_handler(ctx: Context<BuyTickets>, lottery_id: u64, force: [u8
         LotteryError::LotteryClosed
     );
     require_eq!(&lottery.id, &lottery_id, LotteryError::InvalidLotteryId);
-    
+
+    require_eq!(ctx.accounts.global_state.lottery_token_account, ctx.accounts.admin_lottery_token_account.key(), LotteryError::InvalidLotteryTokenAccount);
 
     let amount_ant_for_transfer = lottery.lottery_coin_amount_per_ticket;
     // lottery.amount_collected_in_lottery_coin += amount_ant_for_transfer;

@@ -20,4 +20,6 @@ pub enum LotteryError {
     InsufficientFunds,
     #[msg("Not owner.")]
     NotOwner,
+    #[msg("Invalid Lottery Token Account for admin.")]
+    InvalidLotteryTokenAccount,
 }
