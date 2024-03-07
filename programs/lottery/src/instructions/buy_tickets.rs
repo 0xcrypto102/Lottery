@@ -16,7 +16,11 @@ use orao_solana_vrf::state::Randomness;
 use std::mem::size_of;
 use orao_solana_vrf::cpi::accounts::{ Request };
 
+
+//  &force =  &global_state.current_lottery_id.to_le_bytes(),&(lottery_ticket.total_ticket + 1).to_le_bytes(), buyer.key().as_ref() 
+
 #[derive(Accounts)]
+#[instruction(force: [u8; 32])]
 pub struct BuyTickets<'info> {
     #[account(mut)]
     pub buyer: Signer<'info>,
@@ -58,7 +62,7 @@ pub struct BuyTickets<'info> {
     /// CHECK:` doc comment explaining why no checks through types are necessary.
     #[account(
         mut,
-        seeds = [RANDOMNESS_ACCOUNT_SEED.as_ref(), &global_state.current_lottery_id.to_le_bytes(),&(lottery_ticket.total_ticket + 1).to_le_bytes(), buyer.key().as_ref() ],
+        seeds = [RANDOMNESS_ACCOUNT_SEED.as_ref(), &force],
         bump,
         seeds::program = orao_solana_vrf::ID
     )]
@@ -93,7 +97,7 @@ impl<'info> BuyTickets<'info> {
     }
 }
 
-pub fn buy_tickets_handler(ctx: Context<BuyTickets>, lottery_id: u64) -> Result<()> {
+pub fn buy_tickets_handler(ctx: Context<BuyTickets>, lottery_id: u64, force: [u8; 32]) -> Result<()> {
     let lottery = &mut ctx.accounts.lottery;
     let buyer = ctx.accounts.buyer.key;
 
@@ -117,6 +121,18 @@ pub fn buy_tickets_handler(ctx: Context<BuyTickets>, lottery_id: u64) -> Result<
     lottery.amount_collected_in_lottery_coin += 1;
 
     token::transfer(ctx.accounts.transfer_context(), amount_ant_for_transfer)?;
+
+    // Request randomness.
+    let cpi_program = ctx.accounts.vrf.to_account_info();
+    let cpi_accounts = Request {
+        payer: ctx.accounts.buyer.to_account_info(),
+        network_state: ctx.accounts.config.to_account_info(),
+        treasury: ctx.accounts.treasury.to_account_info(),
+        request: ctx.accounts.random.to_account_info(),
+        system_program: ctx.accounts.system_program.to_account_info(),
+    };
+    let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+    orao_solana_vrf::cpi::request(cpi_ctx, force)?;
 
     emit!(TicketsPurchase {
         buyer: buyer.key(),

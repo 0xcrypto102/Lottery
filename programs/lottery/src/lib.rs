@@ -42,8 +42,8 @@ pub mod lottery {
         instructions::close_lottery_handler(ctx, lottery_id)
     }
 
-    pub fn buy_tickets(ctx: Context<BuyTickets>, lottery_id: u64) -> Result<()> {
-        instructions::buy_tickets_handler(ctx, lottery_id)
+    pub fn buy_tickets(ctx: Context<BuyTickets>, lottery_id: u64, force: [u8; 32]) -> Result<()> {
+        instructions::buy_tickets_handler(ctx, lottery_id,force)
     }
 
     pub fn process_draw_final_number_and_make_lottery_claimable(
