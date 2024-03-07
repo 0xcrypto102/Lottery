@@ -48,7 +48,7 @@ pub struct NewRandomGenerator {
 pub struct TicketsPurchase {
     pub buyer: Pubkey,
     pub lottery_id: u64,
-    pub number_tickets: u64,
+    // pub number_tickets: u64,
 }
 #[event]
 pub struct TicketsClaim {
