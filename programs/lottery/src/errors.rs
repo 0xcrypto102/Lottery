@@ -22,4 +22,14 @@ pub enum LotteryError {
     NotOwner,
     #[msg("Invalid Lottery Token Account for admin.")]
     InvalidLotteryTokenAccount,
+    #[msg("Uninitialized Account")]
+    UninitializedAccount,
+    #[msg("Already Confirm")]
+    AlreadyConfirm,
+    #[msg("Not Confirmed")]
+    NotConfirmed,
+    #[msg("Didn't Deposit")]
+    NotDeposit,
+    #[msg("Lottery not claimable")]
+    LotteryNotClaimable
 }

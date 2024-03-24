@@ -1,7 +1,18 @@
 use crate::errors::LotteryError;
 use crate::events::LotteryClose;
-use crate::state::{Lottery, LotteryStatus};
+use crate::state::{Lottery};
 use anchor_lang::prelude::*;
+
+use orao_solana_vrf::program::OraoVrf;
+use orao_solana_vrf::state::NetworkState;
+use orao_solana_vrf::CONFIG_ACCOUNT_SEED;
+use orao_solana_vrf::RANDOMNESS_ACCOUNT_SEED;
+use orao_solana_vrf::state::Randomness;
+
+// use mpl_token_metadata::types::DataV2;
+use std::mem::size_of;
+use orao_solana_vrf::cpi::accounts::{ Request };
+
 
 #[derive(Accounts)]
 pub struct CloseLottery<'info> {
@@ -15,7 +26,7 @@ pub fn close_lottery_handler(ctx: Context<CloseLottery>, lottery_id: u64) -> Res
     let lottery = &mut ctx.accounts.lottery;
 
     require!(
-        &lottery.status.equal_to(LotteryStatus::Open),
+        lottery.status == 0,
         LotteryError::LotteryClosed
     );
     require_eq!(&lottery.id, &lottery_id, LotteryError::InvalidLotteryId);
@@ -28,8 +39,8 @@ pub fn close_lottery_handler(ctx: Context<CloseLottery>, lottery_id: u64) -> Res
     // Additional logic for closing the lottery (e.g., finalizing winning number)
 
     // Change the status of the lottery to 'Closed'
-    lottery.status = LotteryStatus::Closed;
-
+    lottery.status = 1;
+    
     emit!(LotteryClose {
         lottery_id: lottery_id,
         // TODO change this
