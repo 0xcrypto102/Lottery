@@ -1,9 +1,9 @@
 use crate::events::Initialized;
-use crate::state::{ GlobalState };
+use crate::state::{ GlobalState, Reward };
 use crate::{constants::*};
 
 use anchor_spl::{
-    token::{Mint, Token, TokenAccount, transfer},
+    token::{Mint, Token, TokenAccount},
 };
 
 use anchor_lang::prelude::{Pubkey, *};
@@ -13,7 +13,6 @@ use std::mem::size_of;
 // TODO give role to the pubkey that starts the lottery
 
 #[derive(Accounts)]
-#[instruction(bump: u8)]
 pub struct Initialize<'info> {
     #[account(
         init, 
@@ -22,19 +21,26 @@ pub struct Initialize<'info> {
         space = 8 + size_of::<GlobalState>(),
         payer = owner, 
     )] // TODO Adjusted space
-    pub global_state: Account<'info, GlobalState>,
+    pub global_state: Box<Account<'info, GlobalState>>,
 
-    pub token_for_lottery: Account<'info, Mint>,
+    pub token_for_lottery: Box<Account<'info, Mint>>,
+
+    #[account(
+        mut
+    )]
+    pub lottery_token_account: Box<Account<'info, TokenAccount>>,// it should be owned by owner
+
+    pub token_for_antc: Box<Account<'info, Mint>>,
 
     #[account(
         init,
         payer = owner,
-        seeds = [TOKEN_VAULT_SEED, token_for_lottery.key().as_ref()],
+        seeds = [TOKEN_VAULT_SEED, token_for_antc.key().as_ref()],
         bump,
-        token::mint = token_for_lottery,
+        token::mint = token_for_antc,
         token::authority = global_state,
     )]
-    lottery_token_account: Account<'info, TokenAccount>,
+    pub antc_token_account: Box<Account<'info, TokenAccount>>,
 
     // consider renaming the signer from user to owner because they start the lottery
     #[account(mut)]
@@ -51,9 +57,18 @@ pub fn initialize(
     let global_state = &mut ctx.accounts.global_state;
     // Set other lottery parameters
     global_state.current_lottery_id = 0;
-    global_state.rewards_breakdown = rewards_breakdown.clone();
+
+    global_state.rewards_breakdown = Reward {
+        match3: rewards_breakdown[0],
+        match4: rewards_breakdown[1],
+        match5: rewards_breakdown[2],
+        match6: rewards_breakdown[3],
+    };
+
     global_state.token_for_lottery = ctx.accounts.token_for_lottery.key();
     global_state.lottery_token_account = ctx.accounts.lottery_token_account.key();
+    global_state.token_for_antc = ctx.accounts.token_for_antc.key();
+    global_state.antc_token_account = ctx.accounts.antc_token_account.key();
     global_state.owner = ctx.accounts.owner.key();
     global_state.bump = bump;
 

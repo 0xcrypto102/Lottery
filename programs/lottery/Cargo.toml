@@ -18,6 +18,5 @@ default = []
 [dependencies]
 anchor-lang = { version = "0.29.0", features = ["init-if-needed"] }
 anchor-spl = "0.29.0"
-rand = "0.8.5"
 spl-token = "4.0.0"
-orao-solana-vrf = { version = "0.2.3", default-features = false, features = ["cpi"] }
+orao-solana-vrf = { version = "0.2.5", default-features = false, features = ["cpi"] }
