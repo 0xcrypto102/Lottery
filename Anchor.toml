@@ -5,7 +5,7 @@ seeds = false
 skip-lint = false
 
 [programs.devnet]
-lottery = "32LJD42pcorD5P3GGqeKXDR8Hmcr5ZDo77cX9yFT5jyH"
+lottery = "AtGHjJbiGW3wWoTvYPhw14zENaUR779oCngPrTzcMHj6"
 
 [registry]
 url = "https://api.apr.dev"

@@ -7,7 +7,7 @@ mod constants;
 use anchor_lang::prelude::*;
 use instructions::*;
 
-declare_id!("32LJD42pcorD5P3GGqeKXDR8Hmcr5ZDo77cX9yFT5jyH");
+declare_id!("AtGHjJbiGW3wWoTvYPhw14zENaUR779oCngPrTzcMHj6");
 
 
 #[program]
@@ -52,16 +52,16 @@ pub mod lottery {
         instructions::confirm_tickets_handler(ctx)
     }
 
-    pub fn claim_tickets(ctx: Context<ClaimTicket>) -> Result<()> {
-        instructions::claim_tickets_handler(ctx)
+    pub fn claim_tickets(ctx: Context<ClaimTicket>, ticket_order: u8) -> Result<()> {
+        instructions::claim_tickets_handler(ctx, ticket_order)
     }
 
     pub fn calculate_antc_for_lottery(ctx: Context<CalculateAntcAmountForLottery>, lottery_price: u64, antc_price: u64) -> Result<()> {
         instructions::calculate_antc_for_lottery(ctx, lottery_price, antc_price)
     }
 
-    pub fn deposit_atc_for_lottery(ctx: Context<DepositAntcForLottery>, amount: u64) -> Result<()> {
-        instructions::deposit_atc_for_lottery(ctx, amount)
+    pub fn deposit_antc_for_lottery(ctx: Context<DepositAntcForLottery>, amount: u64) -> Result<()> {
+        instructions::deposit_antc_for_lottery(ctx, amount)
     }
     pub fn process_draw_final_number_and_make_lottery_claimable(
         ctx: Context<ProcessDrawFinalNumberAndMakeLotteryClaimable>,

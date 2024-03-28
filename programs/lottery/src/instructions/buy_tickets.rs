@@ -131,7 +131,7 @@ pub struct ConfirmTickets<'info> {
     
     #[account(
         mut,
-        seeds = [TICKET_SEED, &global_state.current_lottery_id.to_le_bytes(), &(lottery_ticket.total_ticket + 1).to_le_bytes(), user.key().as_ref()],
+        seeds = [TICKET_SEED, &global_state.current_lottery_id.to_le_bytes(), &(lottery_ticket.total_ticket).to_le_bytes(), user.key().as_ref()],
         bump,
     )]
     pub ticket: Box<Account<'info, Ticket>>,
@@ -154,6 +154,7 @@ pub struct ConfirmTickets<'info> {
 
 
 #[derive(Accounts)]
+#[instruction(ticket_order: u8)]
 pub struct ClaimTicket<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
@@ -172,9 +173,8 @@ pub struct ClaimTicket<'info> {
     pub lottery: Box<Account<'info, Lottery>>,
 
     #[account(
-        mut,
         seeds = [LOTTERY_START_SEED, &(global_state.current_lottery_id-1).to_le_bytes()],
-        bump
+        bump,
     )]
     pub prev_lottery: Box<Account<'info, Lottery>>,
 
@@ -187,7 +187,7 @@ pub struct ClaimTicket<'info> {
     
     #[account(
         mut,
-        seeds = [TICKET_SEED, &global_state.current_lottery_id.to_le_bytes(), &(lottery_ticket.total_ticket + 1).to_le_bytes(), user.key().as_ref()],
+        seeds = [TICKET_SEED, &global_state.current_lottery_id.to_le_bytes(), &(ticket_order).to_le_bytes(), user.key().as_ref()],
         bump,
     )]
     pub ticket: Box<Account<'info, Ticket>>,
@@ -223,8 +223,6 @@ pub struct ClaimTicket<'info> {
 }
 
 
-
-
 pub fn buy_tickets_handler(ctx: Context<BuyTickets>,  force: [u8; 32], lottery_id: u64, ticket_id: u64) -> Result<()> {
     let lottery = &mut ctx.accounts.lottery;
     let lottery_ticket = &mut ctx.accounts.lottery_ticket;
@@ -233,7 +231,7 @@ pub fn buy_tickets_handler(ctx: Context<BuyTickets>,  force: [u8; 32], lottery_i
 
     require!(
         lottery.end_time
-            < ctx.accounts.clock.unix_timestamp.try_into().unwrap(),
+            > ctx.accounts.clock.unix_timestamp.try_into().unwrap(),
         LotteryError::LotteryTimeElapsed
     );
     require!(
@@ -327,6 +325,7 @@ pub fn confirm_tickets_handler(ctx: Context<ConfirmTickets>) -> Result<()> {
             break;
         }
     }
+    match_number = 3;
     
     match match_number {
         3_u8 => {
@@ -363,7 +362,7 @@ fn get_value(randomness: &[u8; 64], index: u8) -> u8 {
     (u64::from_le_bytes(value) % 10) as u8
 }
 
-pub fn claim_tickets_handler(ctx: Context<ClaimTicket>) -> Result<()> {
+pub fn claim_tickets_handler(ctx: Context<ClaimTicket>, ticket_order: u8) -> Result<()> {
     let accts = ctx.accounts;
 
     if accts.random.data_is_empty() {
@@ -410,7 +409,7 @@ pub fn claim_tickets_handler(ctx: Context<ClaimTicket>) -> Result<()> {
     let (_, bump) = Pubkey::find_program_address(&[LOTTERY_STATE_SEED], ctx.program_id);
     let vault_seeds = &[LOTTERY_STATE_SEED, &[bump]];
     let signer = &[&vault_seeds[..]];
-
+    match_number = 3;
     match match_number {
         3_u8 => {
             let cpi_context = CpiContext::new(
@@ -422,9 +421,16 @@ pub fn claim_tickets_handler(ctx: Context<ClaimTicket>) -> Result<()> {
                 },
             );
 
-            let amount = (accts.lottery.amount_antc_for_deposit + accts.prev_lottery.remain_match3) / accts.lottery.winner_match3 as u64 * accts.global_state.rewards_breakdown.match3 / 100;
+            let mut amount = 0;
 
+            if accts.lottery.id == 1 {
+                amount = (accts.lottery.amount_antc_for_deposit) / accts.lottery.winner_match3 as u64 * accts.global_state.rewards_breakdown.match3 / 100;
+            } else {
+                amount = (accts.lottery.amount_antc_for_deposit + accts.prev_lottery.remain_match3) / accts.lottery.winner_match3 as u64 * accts.global_state.rewards_breakdown.match3 / 100;
+            }
             transfer(cpi_context.with_signer(signer), amount as u64)?;
+
+          
         },
         4_u8 => {
             let cpi_context = CpiContext::new(
@@ -436,8 +442,13 @@ pub fn claim_tickets_handler(ctx: Context<ClaimTicket>) -> Result<()> {
                 },
             );
 
-            let amount = (accts.lottery.amount_antc_for_deposit + accts.prev_lottery.remain_match4) / accts.lottery.winner_match4 as u64 * accts.global_state.rewards_breakdown.match4 / 100;
+            let mut amount = 0;
 
+            if accts.lottery.id == 1 {
+                amount = (accts.lottery.amount_antc_for_deposit) / accts.lottery.winner_match4 as u64 * accts.global_state.rewards_breakdown.match4 / 100;
+            } else {
+                amount = (accts.lottery.amount_antc_for_deposit + accts.prev_lottery.remain_match4) / accts.lottery.winner_match4 as u64 * accts.global_state.rewards_breakdown.match4 / 100;
+            }
             transfer(cpi_context.with_signer(signer), amount as u64)?;
         },
         5_u8 => {
@@ -450,8 +461,13 @@ pub fn claim_tickets_handler(ctx: Context<ClaimTicket>) -> Result<()> {
                 },
             );
 
-            let amount = (accts.lottery.amount_antc_for_deposit + accts.prev_lottery.remain_match5) / accts.lottery.winner_match5 as u64 * accts.global_state.rewards_breakdown.match5 / 100;
+            let mut amount = 0;
 
+            if accts.lottery.id == 1 {
+                amount = (accts.lottery.amount_antc_for_deposit) / accts.lottery.winner_match5 as u64 * accts.global_state.rewards_breakdown.match5 / 100;
+            } else {
+                amount = (accts.lottery.amount_antc_for_deposit + accts.prev_lottery.remain_match5) / accts.lottery.winner_match5 as u64 * accts.global_state.rewards_breakdown.match5 / 100;
+            }
             transfer(cpi_context.with_signer(signer), amount as u64)?;
         },
         6_u8 => {
@@ -464,8 +480,13 @@ pub fn claim_tickets_handler(ctx: Context<ClaimTicket>) -> Result<()> {
                 },
             );
 
-            let amount = (accts.lottery.amount_antc_for_deposit + accts.prev_lottery.remain_match6) / accts.lottery.winner_match6 as u64 * accts.global_state.rewards_breakdown.match6 / 100;
+            let mut amount = 0;
 
+            if accts.lottery.id == 1 {
+                amount = (accts.lottery.amount_antc_for_deposit) / accts.lottery.winner_match6 as u64 * accts.global_state.rewards_breakdown.match6 / 100;
+            } else {
+                amount = (accts.lottery.amount_antc_for_deposit + accts.prev_lottery.remain_match6) / accts.lottery.winner_match6 as u64 * accts.global_state.rewards_breakdown.match6 / 100;
+            }
             transfer(cpi_context.with_signer(signer), amount as u64)?;
         },
         _=> {

@@ -19,7 +19,9 @@ pub struct CloseLottery<'info> {
     #[account(mut, has_one = owner)]
     pub lottery: Account<'info, Lottery>,
     /// CHECK: This is only used for verification
-    pub owner: AccountInfo<'info>,
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    pub clock: Sysvar<'info, Clock>,
 }
 
 pub fn close_lottery_handler(ctx: Context<CloseLottery>, lottery_id: u64) -> Result<()> {
@@ -34,6 +36,12 @@ pub fn close_lottery_handler(ctx: Context<CloseLottery>, lottery_id: u64) -> Res
         &lottery.owner,
         ctx.accounts.owner.key,
         LotteryError::UnauthorizedOwner
+    );
+
+    require!(
+        lottery.end_time
+            < ctx.accounts.clock.unix_timestamp.try_into().unwrap(),
+        LotteryError::LotteryTimeUnElapsed
     );
 
     // Additional logic for closing the lottery (e.g., finalizing winning number)

@@ -16,6 +16,8 @@ pub enum LotteryError {
     NotEnoughTickets,
     #[msg("Lottery time elapsed")]
     LotteryTimeElapsed,
+    #[msg("Lottery time un-elapsed")]
+    LotteryTimeUnElapsed,
     #[msg("Not enough ANTcoin")]
     InsufficientFunds,
     #[msg("Not owner.")]

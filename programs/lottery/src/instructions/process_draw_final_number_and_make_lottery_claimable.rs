@@ -75,22 +75,8 @@ pub struct DepositAntcForLottery<'info> {
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
 }
-impl<'info> DepositAntcForLottery<'info> {
-    fn transfer_context(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
-        CpiContext::new(
-            self.token_program.to_account_info(),
-            Transfer {
-                from: self.buyer_token_account.to_account_info(),
-                to: self.antc_token_account.to_account_info(),
-                authority: self.owner.to_account_info(),
-            },
-        )
-    }
-}
-
 
 #[derive(Accounts)]
-#[instruction(force: [u8; 32])]
 pub struct ProcessDrawFinalNumberAndMakeLotteryClaimable<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -103,8 +89,11 @@ pub struct ProcessDrawFinalNumberAndMakeLotteryClaimable<'info> {
     pub lottery: Account<'info, Lottery>,
 
     #[account(
+        init_if_needed,
+        payer = owner,
         seeds = [LOTTERY_START_SEED, &(global_state.current_lottery_id-1).to_le_bytes()],
         bump,
+        space = 8 + size_of::<Lottery>()
     )]
     pub prev_lottery: Account<'info, Lottery>,
 
@@ -115,6 +104,7 @@ pub struct ProcessDrawFinalNumberAndMakeLotteryClaimable<'info> {
     )]
     pub global_state: Account<'info, GlobalState>,
 
+    #[account(mut)]
     pub token_for_antc: Box<Account<'info, Mint>>,
 
     #[account(
@@ -142,7 +132,7 @@ pub fn calculate_antc_for_lottery(
     Ok(())
 }
 
-pub fn deposit_atc_for_lottery(
+pub fn deposit_antc_for_lottery(
     ctx: Context<DepositAntcForLottery>,
     amount: u64
 ) -> Result<()> {
@@ -150,7 +140,16 @@ pub fn deposit_atc_for_lottery(
     require_eq!(amount, accts.lottery.amount_antc_for_deposit);
     require_eq!(false, accts.lottery.deposited);
 
-    token::transfer(accts.transfer_context(), amount)?;
+    let cpi_ctx = CpiContext::new(
+        accts.token_program.to_account_info(),
+        Transfer {
+            from: accts.buyer_token_account.to_account_info(),
+            to: accts.antc_token_account.to_account_info(),
+            authority: accts.owner.to_account_info(),
+        },
+    );
+    transfer(cpi_ctx, amount)?;
+
     accts.lottery.deposited = true;
     Ok(())
 }
@@ -187,9 +186,14 @@ pub fn process_draw_final_number_and_make_lottery_claimable_handler(
                 authority: accts.global_state.to_account_info(),
             },
         );
-        
-        let total_amount = accts.lottery.amount_antc_for_deposit + accts.prev_lottery.remain_match3;
-        let amount = total_amount * accts.global_state.rewards_breakdown.match3 * 4 / 10; 
+        let mut total_amount = 0;
+        if accts.lottery.id == 1 {
+            total_amount = accts.lottery.amount_antc_for_deposit  * accts.global_state.rewards_breakdown.match3 / 100 ;
+        } else {
+            total_amount = accts.lottery.amount_antc_for_deposit  * accts.global_state.rewards_breakdown.match3 / 100+ accts.prev_lottery.remain_match3;
+        }
+
+        let amount = total_amount * 4 / 10; 
         burn(cpi_context.with_signer(signer), amount as u64)?;
         accts.lottery.remain_match3 = total_amount - amount;
     } else {
@@ -206,8 +210,13 @@ pub fn process_draw_final_number_and_make_lottery_claimable_handler(
             },
         );
         
-        let total_amount = accts.lottery.amount_antc_for_deposit + accts.prev_lottery.remain_match4;
-        let amount = total_amount * accts.global_state.rewards_breakdown.match4 * 4 / 10; 
+        let mut total_amount = 0;
+        if accts.lottery.id == 1 {
+            total_amount = accts.lottery.amount_antc_for_deposit * accts.global_state.rewards_breakdown.match4 / 100;
+        } else {
+            total_amount = accts.lottery.amount_antc_for_deposit * accts.global_state.rewards_breakdown.match4 / 100 + accts.prev_lottery.remain_match4;
+        }
+        let amount = total_amount  * 4 / 10; 
         burn(cpi_context.with_signer(signer), amount as u64)?;
         accts.lottery.remain_match4 = total_amount - amount;
     } else {
@@ -224,8 +233,13 @@ pub fn process_draw_final_number_and_make_lottery_claimable_handler(
             },
         );
 
-        let total_amount = accts.lottery.amount_antc_for_deposit + accts.prev_lottery.remain_match5;
-        let amount = total_amount * accts.global_state.rewards_breakdown.match5* 4 / 10; 
+        let mut total_amount = 0;
+        if accts.lottery.id == 1 {
+            total_amount = accts.lottery.amount_antc_for_deposit * accts.global_state.rewards_breakdown.match5 / 100;
+        } else {
+            total_amount = accts.lottery.amount_antc_for_deposit * accts.global_state.rewards_breakdown.match5 / 100 + accts.prev_lottery.remain_match5;
+        }
+        let amount = total_amount * 4 / 10; 
         burn(cpi_context.with_signer(signer), amount as u64)?;
         accts.lottery.remain_match5 = total_amount - amount;
     } else {
@@ -242,8 +256,13 @@ pub fn process_draw_final_number_and_make_lottery_claimable_handler(
             },
         );
 
-        let total_amount = accts.lottery.amount_antc_for_deposit + accts.prev_lottery.remain_match6;
-        let amount = total_amount * accts.global_state.rewards_breakdown.match6 * 4 / 10; 
+        let mut total_amount = 0;
+        if accts.lottery.id == 1 {
+            total_amount = accts.lottery.amount_antc_for_deposit * accts.global_state.rewards_breakdown.match6 / 100 ;
+        } else {
+            total_amount = accts.lottery.amount_antc_for_deposit * accts.global_state.rewards_breakdown.match6 / 100  + accts.prev_lottery.remain_match6;
+        }
+        let amount = total_amount * 4 / 10; 
         burn(cpi_context.with_signer(signer), amount as u64)?;
         accts.lottery.remain_match6 = total_amount - amount;
     } else {
@@ -255,9 +274,8 @@ pub fn process_draw_final_number_and_make_lottery_claimable_handler(
         // TODO change this
         final_number: 0,
         // TODO change this
-        count_winning_tickets: 0,
+        count_winning_tickets: (accts.lottery.winner_match3 + accts.lottery.winner_match4 +accts.lottery.winner_match5 + accts.lottery.winner_match6) as u64
     });
-
 
     Ok(())
 }

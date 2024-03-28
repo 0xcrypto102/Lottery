@@ -64,6 +64,7 @@ pub struct StartLottery<'info> {
     pub vrf: Program<'info, OraoVrf>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
+    pub clock: Sysvar<'info, Clock>,
 }
 
 pub fn start_lottery_handler(
@@ -79,7 +80,7 @@ pub fn start_lottery_handler(
     }
 
     accts.lottery.id = accts.global_state.current_lottery_id + 1;
-    accts.lottery.end_time = end_time;
+    accts.lottery.end_time = end_time + accts.clock.unix_timestamp as u64;
     accts.lottery.status = 0;
     accts.lottery.owner = accts.owner.key();
     accts.lottery.lottery_coin_amount_per_ticket = lottery_coin_amount_per_ticket;
